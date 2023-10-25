@@ -7,3 +7,6 @@
     <h2>Welcome, {{ username }}! You're logged in.</h2>
 </body>
 </html>
+<form action="{{ url_for('logout', user_type='user') }}" method="post">
+    <input type="submit" value="Logout">
+</form>
