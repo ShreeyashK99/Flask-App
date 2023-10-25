@@ -95,6 +95,15 @@ def delete_user(user_id):
     flash('User deleted successfully!')
     return redirect(url_for('list_users'))
 
+@app.route('/logout/<user_type>', methods=['POST'])
+def logout(user_type):
+    if user_type == "admin":
+        flash('Admin has been logged out!')
+        return redirect(url_for('admin_login'))
+    else:
+        flash('User has been logged out!')
+        return redirect(url_for('login'))
+
 @app.route('/api/users', methods=['GET'])
 def get_all_users():
     users = mongo.db.users.find()
