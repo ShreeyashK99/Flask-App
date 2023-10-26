@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_pymongo import PyMongo
 from bson.objectid import ObjectId
 from flask import jsonify
@@ -6,10 +6,8 @@ from flask import jsonify
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
-
 app.config["MONGO_URI"] = "mongodb://localhost:27017/flask_signup_login_db"
 mongo = PyMongo(app)
-
 
 ADMIN_USERNAME = "Shreek"
 ADMIN_PASSWORD = "sh12345"
@@ -60,10 +58,27 @@ def admin_login():
 
     return render_template('admin_login.html')
 
+@app.route('/admin/add_item', methods=['POST'])
+def add_item():
+    items = mongo.db.items
+    existing_item = items.find_one({'name': request.form['item_name']})
+
+    if existing_item:
+        flash('Item already exists!')
+        return redirect(url_for('admin_dashboard'))
+
+    items.insert_one({
+        'name': request.form['item_name'],
+        'price': request.form['item_price']
+    })
+
+    flash('Item added successfully!')
+    return redirect(url_for('admin_dashboard'))
+
 @app.route('/admin/dashboard')
 def admin_dashboard():
-    users = mongo.db.users.find()
-    return render_template('admin_dashboard.html', users=users)
+    items = list(mongo.db.items.find())
+    return render_template('admin_dashboard.html', items=items)
 
 @app.route('/users')
 def list_users():
@@ -99,10 +114,10 @@ def delete_user(user_id):
 def logout(user_type):
     if user_type == "admin":
         flash('Admin has been logged out!')
-        return redirect(url_for('admin_login'))
+        return render_template('admin_logout.html')
     else:
         flash('User has been logged out!')
-        return redirect(url_for('login'))
+        return render_template('user_logout.html')
 
 @app.route('/api/users', methods=['GET'])
 def get_all_users():
