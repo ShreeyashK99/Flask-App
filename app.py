@@ -1,13 +1,24 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_pymongo import PyMongo
 from bson.objectid import ObjectId
 from flask import jsonify
+from flask import session
+from datetime import datetime, timedelta
+
+
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
+app.config["SESSION_TYPE"] = "filesystem"
+app.config["SESSION_PERMANENT"] = False
+app.permanent_session_lifetime = timedelta(minutes=30)
+
 app.config["MONGO_URI"] = "mongodb://localhost:27017/flask_signup_login_db"
 mongo = PyMongo(app)
+
+from flask_session import Session
+Session(app)
 
 ADMIN_USERNAME = "Shreek"
 ADMIN_PASSWORD = "sh12345"
@@ -40,10 +51,77 @@ def login():
         login_user = users.find_one({'username': request.form['username']})
 
         if login_user and login_user['password'] == request.form['password']:
-            return render_template('user_dashboard.html', username=request.form['username'])
-
+            session.permanent = True
+            session['username'] = request.form['username']
+            return redirect(url_for('user_dashboard'))  
+        
         flash('Invalid credentials!')
     return render_template('login.html')
+
+@app.route('/add_to_cart', methods=['POST'])
+def add_to_cart():
+    item_id = request.form.get('item_id')
+    item = mongo.db.items.find_one({"_id": ObjectId(item_id)})
+    
+    if "cart" not in session:
+        session["cart"] = {}
+    
+    cart = session["cart"]
+    
+    if item_id in cart:
+        cart[item_id]['quantity'] += 1
+    else:
+        cart[item_id] = {
+            "name": item["name"],
+            "price": item["price"],
+            "quantity": 1
+        }
+    session["cart"] = cart
+
+    flash(f"{item['name']} has been added to the cart!")
+    return redirect(url_for('user_dashboard'))  
+
+
+@app.route('/cart')
+def view_cart():
+    cart = session.get("cart", {})
+    return render_template('cart.html', cart=cart)
+
+
+@app.route('/user_dashboard', methods=['GET'])
+def user_dashboard():
+    items = list(mongo.db.items.find())
+    cart = session.get("cart", {})
+    return render_template('user_dashboard.html', items=items, cart=cart)
+
+
+@app.route('/api/checkout', methods=['POST'])
+def checkout():
+    if 'username' not in session:
+        return jsonify({'error': 'User not logged in!'}), 401
+
+    cart = session.get("cart", {})
+    if not cart:
+        return jsonify({'error': 'No items in cart!'}), 400
+
+    user = mongo.db.users.find_one({'username': session['username']})
+    if not user:
+        return jsonify({'error': 'User not found!'}), 404
+
+    order = {
+        'user_id': user['_id'],
+        'items': cart,
+        'timestamp': datetime.utcnow()
+    }
+
+    result = mongo.db.orders.insert_one(order)
+    order_id = result.inserted_id
+
+    session.pop('cart', None) 
+
+    return jsonify({'success': True, 'order_id': str(order_id)})
+
+
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
