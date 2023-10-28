@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cart</title>
+</head>
+<body>
+    <h2>Your Cart</h2>
+    <table border="1">
+        <tr>
+            <th>Item Name</th>
+            <th>Price</th>
+        </tr>
+        {% for item_id, item_data in cart.items() %}
+        <tr>
+            <td>{{ item_data.name }}</td>
+            <td>{{ item_data.price }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <a href="{{ url_for('user_dashboard') }}">Back to Dashboard</a>
+</body>
+</html>
