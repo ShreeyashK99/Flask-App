@@ -19,6 +19,7 @@
 
     <hr>
 
+  
     <h3>All Items:</h3>
     <table border="1">
         <tr>
@@ -31,6 +32,7 @@
             <td>{{ item.price }}</td>
         </tr>
         {% endfor %}
+        
     </table>
 
     <form action="{{ url_for('logout', user_type='admin') }}" method="post">
