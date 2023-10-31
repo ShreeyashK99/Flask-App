@@ -6,13 +6,13 @@ from flask import session
 from datetime import datetime, timedelta
 
 
-
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_PERMANENT"] = False
 app.permanent_session_lifetime = timedelta(minutes=30)
+
 
 app.config["MONGO_URI"] = "mongodb://localhost:27017/flask_signup_login_db"
 mongo = PyMongo(app)
@@ -54,72 +54,84 @@ def login():
             session.permanent = True
             session['username'] = request.form['username']
             return redirect(url_for('user_dashboard'))  
-        
+
         flash('Invalid credentials!')
     return render_template('login.html')
 
 @app.route('/add_to_cart', methods=['POST'])
 def add_to_cart():
     item_id = request.form.get('item_id')
-    item = mongo.db.items.find_one({"_id": ObjectId(item_id)})
-    
-    if "cart" not in session:
-        session["cart"] = {}
-    
-    cart = session["cart"]
-    
+    cart_name = request.form.get('cart_name')
+
+    if 'carts' not in session:
+        session['carts'] = {
+            'Diwali Sale': {},
+            'Holi Sale': {},
+            'Independence Day Sale': {}
+        }
+
+    carts = session['carts']
+    cart = carts.get(cart_name, {})
+
+   
+    items = mongo.db.items.find_one({"_id": ObjectId(item_id)})  
+    latest_item_price = items['price']
+
     if item_id in cart:
         cart[item_id]['quantity'] += 1
     else:
         cart[item_id] = {
-            "name": item["name"],
-            "price": item["price"],
+            "name": items["name"],
+            "price": latest_item_price,  
             "quantity": 1
         }
-    session["cart"] = cart
 
-    flash(f"{item['name']} has been added to the cart!")
-    return redirect(url_for('user_dashboard'))  
+    carts[cart_name] = cart
+    session['carts'] = carts
+
+    flash(f"{items['name']} has been added to the {cart_name} cart!")
+    return redirect(url_for('user_dashboard'))
+
+
+
+
+
+@app.route('/view_cart/<cart_name>', methods=['GET'])
+def view_specific_cart(cart_name):
+    carts = session.get('carts')
+    specific_cart = carts.get(cart_name, {})
+    return render_template('specific_cart.html', cart=specific_cart, cart_name=cart_name)
+
 
 
 @app.route('/cart')
 def view_cart():
-    cart = session.get("cart", {})
-    return render_template('cart.html', cart=cart)
+    cart_name = request.args.get('cart_name')  
+    cart = session['carts'].get(cart_name, {})  
+    return render_template('cart.html', cart=cart, cart_name=cart_name)
 
 
 @app.route('/user_dashboard', methods=['GET'])
 def user_dashboard():
     items = list(mongo.db.items.find())
-    cart = session.get("cart", {})
+    
+    if 'carts' not in session:
+        session['carts'] = {
+            'Diwali Sale': {},
+            'Holi Sale': {},
+            'Independence Day Sale': {}
+        }
+
+    cart = session['carts']
+    
     return render_template('user_dashboard.html', items=items, cart=cart)
 
 
-@app.route('/api/checkout', methods=['POST'])
-def checkout():
-    if 'username' not in session:
-        return jsonify({'error': 'User not logged in!'}), 401
+@app.route('/checkout', methods=['GET'])
+def checkout_page():
+    carts = session.get('carts', {})
+    return render_template('checkout.html', carts=carts)
 
-    cart = session.get("cart", {})
-    if not cart:
-        return jsonify({'error': 'No items in cart!'}), 400
-
-    user = mongo.db.users.find_one({'username': session['username']})
-    if not user:
-        return jsonify({'error': 'User not found!'}), 404
-
-    order = {
-        'user_id': user['_id'],
-        'items': cart,
-        'timestamp': datetime.utcnow()
-    }
-
-    result = mongo.db.orders.insert_one(order)
-    order_id = result.inserted_id
-
-    session.pop('cart', None) 
-
-    return jsonify({'success': True, 'order_id': str(order_id)})
 
 
 
