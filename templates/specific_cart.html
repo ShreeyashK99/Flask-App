@@ -1,0 +1,8 @@
+<h3>{{ cart_name }} Cart Contents:</h3>
+<ul>
+    {% for item_id, item_data in cart.items() %}
+    <li>
+        {{ item_data['name'] }} - ${{ item_data['price'] }} - Quantity: {{ item_data['quantity'] }}
+    </li>
+    {% endfor %}
+</ul>

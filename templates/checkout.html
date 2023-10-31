@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Checkout</title>
+</head>
+<body>
+    <h2>Checkout</h2>
+    <p>Select a cart to checkout:</p>
+    <form action="{{ url_for('checkout_page') }}" method="post">
+        <select name="cart_name">
+            {% for cart_name, cart_data in carts.items() %}
+            <option value="{{ cart_name }}">{{ cart_name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Checkout</button>
+    </form>
+    
