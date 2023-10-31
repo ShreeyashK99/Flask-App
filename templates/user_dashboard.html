@@ -1,43 +1,19 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>User Dashboard</title>
-</head>
-<body>
-    <h2>Welcome, {{ username }}! You're logged in.</h2>
-
-    
-    <h3>Available Items:</h3>
-    <ul>
-        {% for item in items %}
-        <li>
-            {{ item['name'] }} - ${{ item['price'] }}
-            <form action="{{ url_for('add_to_cart') }}" method="post">
-                <input type="hidden" name="item_id" value="{{ item['_id'] }}">
-                <input type="submit" value="Add to Cart">
-            </form>
-        </li>
-        {% endfor %}
-    </ul>
-
-
-    <h3>Your Cart:</h3>
+<h3>Available Items:</h3>
 <ul>
-    {% for item_id, item_details in cart.items() %}
+    {% for item in items %}
     <li>
-        {{ item_details['name'] }} - {{ item_details['price'] }} (Qty: {{ item_details['quantity'] }})
+        {{ item['name'] }} - ${{ item['price'] }}
+        <form action="{{ url_for('add_to_cart') }}" method="post">
+            <input type="hidden" name="item_id" value="{{ item['_id'] }}">
+            
+            <select name="cart_name">
+                <option value="Diwali Sale">Diwali Sale</option>
+                <option value="Holi Sale">Holi Sale</option>
+                <option value="Independence Day Sale">Independence Day Sale</option>
+            </select>
+            
+            <input type="submit" value="Add to Cart">
+        </form>
     </li>
     {% endfor %}
 </ul>
-
-<form action="{{ url_for('checkout') }}" method="post">
-    <input type="submit" value="Checkout">
-</form>
-
-
-    <form action="{{ url_for('logout', user_type='user') }}" method="post">
-        <input type="submit" value="Logout">
-    </form>
-</body>
-</html>
-
